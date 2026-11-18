@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapCut AI - Free AI Video Clipper & Reframer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass-panel { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glow-button { box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.5); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.8); }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="glass-panel border-b border-slate-800/80 sticky top-0 z-50 px-4 lg:px-8 py-3.5 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center glow-button">
+                <i class="fa-solid fa-scissors text-white text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-lg bg-gradient-to-r from-white via-indigo-200 to-indigo-400 bg-clip-text text-transparent flex items-center gap-2">
+                    SnapCut AI <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Free Studio</span>
+                </h1>
+                <p class="text-xs text-slate-400 hidden sm:block">AI Viral Moments, Smart Reframing & Auto-Captions</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <button onclick="openLinkModal()" class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold flex items-center gap-2 transition shadow-sm">
+                <i class="fa-solid fa-link text-indigo-400"></i>
+                <span>Paste Social Link</span>
+            </button>
+            <button onclick="installAppPrompt()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-semibold flex items-center gap-2 transition shadow-md glow-button">
+                <i class="fa-solid fa-download"></i>
+                <span class="hidden sm:inline">Install App</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN APP CONTAINER -->
+    <main class="flex-1 max-w-[1700px] w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT COLUMN: VIDEO SOURCE & CLIPS (4 COLS) -->
+        <section class="lg:col-span-4 flex flex-col gap-5">
+            <!-- Source Card -->
+            <div class="glass-panel rounded-2xl p-4 lg:p-5 flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-film text-indigo-400"></i> Video Source
+                    </h2>
+                    <span id="sourceStatusBadge" class="text-[11px] px-2.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">Ready</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button onclick="triggerFileUpload()" class="p-3 rounded-xl bg-slate-900/80 hover:bg-indigo-950/40 border border-slate-800 hover:border-indigo-500/50 flex flex-col items-center justify-center gap-2 transition group">
+                        <div class="w-9 h-9 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:scale-110 transition">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <span class="text-xs font-medium text-slate-300">Upload File</span>
+                    </button>
+                    <button onclick="loadDemoVideo()" class="p-3 rounded-xl bg-slate-900/80 hover:bg-purple-950/40 border border-slate-800 hover:border-purple-500/50 flex flex-col items-center justify-center gap-2 transition group">
+                        <div class="w-9 h-9 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center group-hover:scale-110 transition">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        </div>
+                        <span class="text-xs font-medium text-slate-300">Instant Demo</span>
+                    </button>
+                </div>
+                <input type="file" id="videoFileInput" accept="video/*" class="hidden" onchange="handleFileSelect(event)">
+            </div>
+
+            <!-- AI Clips Extractor Card -->
+            <div class="glass-panel rounded-2xl p-4 lg:p-5 flex-1 flex flex-col gap-4 min-h-[350px]">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-bolt text-amber-400"></i> AI Viral Clips (<span id="clipCount">3</span>)
+                    </h2>
+                    <button onclick="runAiAnalysis()" class="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-brain"></i> Re-Analyze
+                    </button>
+                </div>
+
+                <div id="clipsList" class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 pr-1">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- CENTER COLUMN: STUDIO CANVAS & PLAYBACK (5 COLS) -->
+        <section class="lg:col-span-5 flex flex-col gap-5">
+            <div class="glass-panel rounded-2xl p-4 lg:p-6 flex flex-col items-center gap-4 relative overflow-hidden">
+                <!-- Aspect Ratio Selector -->
+                <div class="flex items-center gap-1.5 bg-slate-900/90 p-1.5 rounded-xl border border-slate-800 w-full justify-center overflow-x-auto">
+                    <button onclick="setAspect('9:16')" id="btn-9:16" class="aspect-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition flex items-center gap-1.5 shrink-0">
+                        <i class="fa-solid fa-mobile-screen"></i> 9:16 Shorts
+                    </button>
+                    <button onclick="setAspect('1:1')" id="btn-1:1" class="aspect-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1.5 shrink-0">
+                        <i class="fa-solid fa-square"></i> 1:1 Square
+                    </button>
+                    <button onclick="setAspect('4:5')" id="btn-4:5" class="aspect-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1.5 shrink-0">
+                        <i class="fa-solid fa-tablet-screen-button"></i> 4:5 Portrait
+                    </button>
+                    <button onclick="setAspect('16:9')" id="btn-16:9" class="aspect-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1.5 shrink-0">
+                        <i class="fa-solid fa-desktop"></i> 16:9 YouTube
+                    </button>
+                </div>
+
+                <!-- Video Preview / Canvas Stage -->
+                <div id="stageContainer" class="relative bg-black rounded-xl overflow-hidden shadow-2xl flex items-center justify-center border border-slate-800/80 w-full transition-all duration-300" style="aspect-ratio: 9/16; max-height: 520px;">
+                    <video id="sourceVideo" class="hidden" crossorigin="anonymous" playsinline></video>
+                    <canvas id="studioCanvas" class="w-full h-full object-contain"></canvas>
+
+                    <!-- Top Hook Overlay Banner Preview -->
+                    <div id="hookOverlay" class="absolute top-6 left-4 right-4 text-center pointer-events-none transition-all hidden">
+                        <div id="hookBannerBg" class="inline-block px-4 py-2 rounded-xl bg-black/75 backdrop-blur-md border border-white/20 shadow-xl">
+                            <span id="hookBannerText" class="text-white font-extrabold text-sm sm:text-base tracking-wide drop-shadow-md"></span>
+                        </div>
+                    </div>
+
+                    <!-- Kinetic Captions Overlay Preview -->
+                    <div id="captionOverlay" class="absolute bottom-16 left-4 right-4 text-center pointer-events-none">
+                        <span id="captionText" class="px-3 py-1.5 rounded-lg bg-black/80 text-white font-black text-lg sm:text-2xl tracking-wide uppercase drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] border border-white/10 transition-all">Ready to Clip</span>
+                    </div>
+
+                    <!-- Watermark-Free Badge -->
+                    <div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10 text-[10px] font-semibold text-indigo-300 flex items-center gap-1">
+                        <i class="fa-solid fa-shield-halved"></i> 100% Free • No Watermark
+                    </div>
+                </div>
+
+                <!-- Playback & Scrub Bar -->
+                <div class="w-full flex flex-col gap-2">
+                    <div class="flex items-center justify-between text-xs text-slate-400 font-medium">
+                        <span id="currentTimeDisplay">00:00</span>
+                        <span id="durationDisplay">00:00</span>
+                    </div>
+                    <input type="range" id="seekBar" value="0" min="0" max="100" step="0.1" class="w-full accent-indigo-500 cursor-pointer" oninput="seekVideo(this.value)">
+                </div>
+
+                <!-- Play / Export Bar -->
+                <div class="flex items-center justify-between w-full pt-2 border-t border-slate-800">
+                    <button onclick="togglePlay()" id="playBtn" class="w-12 h-12 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white flex items-center justify-center transition shadow-md">
+                        <i class="fa-solid fa-play text-base"></i>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <button onclick="openExportModal()" class="px-5 py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:opacity-95 text-white text-sm font-bold flex items-center gap-2 transition glow-button">
+                            <i class="fa-solid fa-download"></i> Export HD Clip
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: CAPTIONS, HOOKS & REFRAME SETTINGS (3 COLS) -->
+        <section class="lg:col-span-3 flex flex-col gap-5">
+            <!-- Tabs Header -->
+            <div class="glass-panel rounded-2xl p-1.5 flex gap-1">
+                <button onclick="switchTab('captions')" id="tab-captions" class="flex-1 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white transition">Captions</button>
+                <button onclick="switchTab('reframe')" id="tab-reframe" class="flex-1 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">Reframer</button>
+            </div>
+
+            <!-- Tab Content: Captions -->
+            <div id="panel-captions" class="glass-panel rounded-2xl p-4 lg:p-5 flex flex-col gap-4 flex-1">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                    <i class="fa-solid fa-closed-captioning text-indigo-400"></i> AI Captions & Hooks
+                </h3>
+
+                <!-- Style Selector -->
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs text-slate-400 font-semibold">Caption Style</label>
+                    <select id="captionStyleSelect" onchange="updateCaptionStyle()" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                        <option value="hormozi">Alex Hormozi Pop (Yellow & White)</option>
+                        <option value="neon">Neon Cyber (Cyan Glow)</option>
+                        <option value="karaoke">Karaoke Gradient</option>
+                        <option value="clean">Minimal Clean</option>
+                    </select>
+                </div>
+
+                <!-- Top Hook Generator -->
+                <div class="flex flex-col gap-2 pt-2 border-t border-slate-800">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs text-slate-400 font-semibold">Top Hook Banner</label>
+                        <button onclick="generateAiHook()" class="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> AI Hook
+                        </button>
+                    </div>
+                    <input type="text" id="hookTextInput" value="⚠️ Watch Until The End!" oninput="updateHookBanner()" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <!-- Transcription Script Box -->
+                <div class="flex flex-col gap-1.5 flex-1 pt-2 border-t border-slate-800">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs text-slate-400 font-semibold">Transcript Segments</label>
+                        <button onclick="autoTranscribeAudio()" class="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-microphone-lines"></i> Auto-Transcribe
+                        </button>
+                    </div>
+                    <textarea id="transcriptBox" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-slate-300 focus:outline-none focus:border-indigo-500 resize-none custom-scrollbar" placeholder="Transcript will appear here or type custom captions...">[00:00] Welcome to SnapCut AI!
+[00:03] Creating viral clips in seconds.
+[00:07] Tap export to save watermark-free!</textarea>
+                </div>
+            </div>
+
+            <!-- Tab Content: Reframer (Hidden by default) -->
+            <div id="panel-reframe" class="glass-panel rounded-2xl p-4 lg:p-5 flex flex-col gap-4 flex-1 hidden">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                    <i class="fa-solid fa-crop text-indigo-400"></i> Smart Face & Crop
+                </h3>
+
+                <div class="flex flex-col gap-3">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs text-slate-400 font-semibold">Fit Mode</label>
+                        <select id="fitModeSelect" onchange="drawVideoFrame()" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                            <option value="cover">Smart Crop (Fill Screen)</option>
+                            <option value="contain">Fit & Blur Backdrop</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs text-slate-400 font-semibold">Face / Focal Offset X (<span id="offsetXVal">0</span>px)</label>
+                        <input type="range" id="offsetXRange" min="-300" max="300" value="0" oninput="document.getElementById('offsetXVal').innerText=this.value; drawVideoFrame();" class="accent-indigo-500">
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs text-slate-400 font-semibold">Video Scale (<span id="scaleVal">1.0</span>x)</label>
+                        <input type="range" id="scaleRange" min="0.8" max="2.0" step="0.05" value="1.0" oninput="document.getElementById('scaleVal').innerText=this.value; drawVideoFrame();" class="accent-indigo-500">
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-800 flex flex-col gap-2">
+                        <label class="text-xs text-slate-400 font-semibold">AI Video Quality Enhancer</label>
+                        <button onclick="applyAiEnhance()" class="w-full py-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 text-xs font-semibold flex items-center justify-center gap-2 transition">
+                            <i class="fa-solid fa-wand-magic-sparkles text-indigo-400"></i> Studio Crisp & Vibrance 1-Click
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- SOCIAL LINK MODAL -->
+    <div id="linkModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-panel rounded-2xl max-w-lg w-full p-6 flex flex-col gap-5 border border-slate-700 shadow-2xl">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-link text-indigo-400"></i> Import Social Media Video
+                </h3>
+                <button onclick="closeLinkModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <p class="text-xs text-slate-400">Paste any public link from YouTube Shorts, TikTok, Instagram Reels, Twitter/X, Twitch, Vimeo, or a direct MP4 URL.</p>
+            
+            <div class="flex items-center gap-2">
+                <input type="text" id="socialUrlInput" placeholder="https://www.youtube.com/watch?v=..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-indigo-500">
+                <button onclick="importSocialLink()" class="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition">Import</button>
+            </div>
+
+            <div class="grid grid-cols-4 gap-2 pt-2">
+                <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col items-center gap-1 text-center">
+                    <i class="fa-brands fa-youtube text-red-500 text-sm"></i>
+                    <span class="text-[10px] text-slate-400">YouTube</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col items-center gap-1 text-center">
+                    <i class="fa-brands fa-tiktok text-pink-500 text-sm"></i>
+                    <span class="text-[10px] text-slate-400">TikTok</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col items-center gap-1 text-center">
+                    <i class="fa-brands fa-instagram text-purple-500 text-sm"></i>
+                    <span class="text-[10px] text-slate-400">Instagram</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col items-center gap-1 text-center">
+                    <i class="fa-brands fa-twitter text-cyan-400 text-sm"></i>
+                    <span class="text-[10px] text-slate-400">Twitter/X</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXPORT MODAL -->
+    <div id="exportModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-panel rounded-2xl max-w-md w-full p-6 flex flex-col gap-5 border border-slate-700 shadow-2xl">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-download text-indigo-400"></i> Export HD Video Clip
+                </h3>
+                <button onclick="closeExportModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs text-slate-400 font-semibold">Resolution</label>
+                    <select id="exportRes" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                        <option value="1080">1080p Full HD (Best for TikTok/Reels)</option>
+                        <option value="720">720p HD (Fast Render)</option>
+                        <option value="2160">2K QHD Studio Quality</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs text-slate-400 font-semibold">Frame Rate</label>
+                    <select id="exportFps" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                        <option value="60">60 FPS (Ultra Smooth)</option>
+                        <option value="30">30 FPS (Standard)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="exportProgressContainer" class="hidden flex-col gap-2">
+                <div class="flex justify-between text-xs text-slate-400">
+                    <span id="exportStatusText">Rendering video stream...</span>
+                    <span id="exportPct">0%</span>
+                </div>
+                <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                    <div id="exportProgressBar" class="bg-gradient-to-r from-indigo-500 to-pink-500 h-full w-0 transition-all duration-200"></div>
+                </div>
+            </div>
+
+            <button onclick="startExportProcess()" id="startExportBtn" class="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-95 text-white text-sm font-bold flex items-center justify-center gap-2 transition glow-button">
+                <i class="fa-solid fa-film"></i> Start Download (Watermark-Free)
+            </button>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        const video = document.getElementById('sourceVideo');
+        const canvas = document.getElementById('studioCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let currentAspect = '9:16';
+        let isPlaying = false;
+        let mockClips = [
+            { id: 1, title: "Mindset Shift & Growth", start: 2, end: 14, score: 96, tag: "Viral Hook" },
+            { id: 2, title: "The Secret Strategy", start: 18, end: 32, score: 92, tag: "High Energy" },
+            { id: 3, title: "Final Takeaway & Action", start: 35, end: 48, score: 88, tag: "Engagement" }
+        ];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderClipsList();
+            loadDemoVideo();
+        });
+
+        function triggerFileUpload() {
+            document.getElementById('videoFileInput').click();
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const url = URL.createObjectURL(file);
+            video.src = url;
+            video.load();
+            document.getElementById('sourceStatusBadge').innerText = file.name.substring(0, 16) + '...';
+            document.getElementById('sourceStatusBadge').className = "text-[11px] px-2.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium";
+            video.onloadedmetadata = () => {
+                initCanvasDimensions();
+                seekVideo(0);
+            };
+        }
+
+        function loadDemoVideo() {
+            video.src = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
+            video.load();
+            document.getElementById('sourceStatusBadge').innerText = "Demo Video Loaded";
+            document.getElementById('sourceStatusBadge').className = "text-[11px] px-2.5 py-0.5 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20 font-medium";
+            video.onloadedmetadata = () => {
+                initCanvasDimensions();
+                seekVideo(2);
+            };
+        }
+
+        function initCanvasDimensions() {
+            if (currentAspect === '9:16') { canvas.width = 1080; canvas.height = 1920; }
+            else if (currentAspect === '1:1') { canvas.width = 1080; canvas.height = 1080; }
+            else if (currentAspect === '4:5') { canvas.width = 1080; canvas.height = 1350; }
+            else if (currentAspect === '16:9') { canvas.width = 1920; canvas.height = 1080; }
+            drawVideoFrame();
+        }
+
+        function setAspect(aspect) {
+            currentAspect = aspect;
+            document.querySelectorAll('.aspect-btn').forEach(btn => {
+                btn.className = "aspect-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1.5 shrink-0";
+            });
+            document.getElementById(`btn-${aspect}`).className = "aspect-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition flex items-center gap-1.5 shrink-0";
+
+            const container = document.getElementById('stageContainer');
+            if (aspect === '9:16') container.style.aspectRatio = "9/16";
+            else if (aspect === '1:1') container.style.aspectRatio = "1/1";
+            else if (aspect === '4:5') container.style.aspectRatio = "4/5";
+            else if (aspect === '16:9') container.style.aspectRatio = "16/9";
+
+            initCanvasDimensions();
+        }
+
+        function togglePlay() {
+            if (video.paused) {
+                video.play();
+                isPlaying = true;
+                document.getElementById('playBtn').innerHTML = '<i class="fa-solid fa-pause text-base"></i>';
+                requestAnimationFrame(renderLoop);
+            } else {
+                video.pause();
+                isPlaying = false;
+                document.getElementById('playBtn').innerHTML = '<i class="fa-solid fa-play text-base"></i>';
+            }
+        }
+
+        function seekVideo(val) {
+            if (!video.duration) return;
+            video.currentTime = (val / 100) * video.duration;
+            drawVideoFrame();
+        }
+
+        video.addEventListener('timeupdate', () => {
+            if (!video.duration) return;
+            const pct = (video.currentTime / video.duration) * 100;
+            document.getElementById('seekBar').value = pct;
+            document.getElementById('currentTimeDisplay').innerText = formatTime(video.currentTime);
+            document.getElementById('durationDisplay').innerText = formatTime(video.duration);
+            updateCaptionsLive(video.currentTime);
+        });
+
+        function formatTime(secs) {
+            const m = Math.floor(secs / 60);
+            const s = Math.floor(secs % 60);
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function drawVideoFrame() {
+            if (!video) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const fitMode = document.getElementById('fitModeSelect').value;
+            const offsetX = parseInt(document.getElementById('offsetXRange').value) || 0;
+            const scale = parseFloat(document.getElementById('scaleRange').value) || 1.0;
+
+            if (fitMode === 'contain') {
+                ctx.filter = 'blur(25px) brightness(0.6)';
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                ctx.filter = 'none';
+            } else {
+                ctx.fillStyle = '#050509';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            const vWidth = video.videoWidth || 1280;
+            const vHeight = video.videoHeight || 720;
+            
+            let dWidth = canvas.width * scale;
+            let dHeight = (vHeight / vWidth) * dWidth;
+
+            if (fitMode === 'cover' && dHeight < canvas.height) {
+                dHeight = canvas.height * scale;
+                dWidth = (vWidth / vHeight) * dHeight;
+            }
+
+            const dx = (canvas.width - dWidth) / 2 + offsetX;
+            const dy = (canvas.height - dHeight) / 2;
+
+            ctx.drawImage(video, dx, dy, dWidth, dHeight);
+        }
+
+        function renderLoop() {
+            if (isPlaying && !video.paused && !video.ended) {
+                drawVideoFrame();
+                requestAnimationFrame(renderLoop);
+            }
+        }
+
+        function renderClipsList() {
+            const list = document.getElementById('clipsList');
+            list.innerHTML = mockClips.map(clip => `
+                <div onclick="playClip(${clip.start})" class="p-3.5 rounded-xl bg-slate-900/80 hover:bg-indigo-950/30 border border-slate-800 hover:border-indigo-500/50 flex items-center justify-between cursor-pointer transition group">
+                    <div class="flex flex-col gap-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-white group-hover:text-indigo-300 transition">${clip.title}</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-medium">${clip.tag}</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400"><i class="fa-regular fa-clock mr-1"></i> ${formatTime(clip.start)} - ${formatTime(clip.end)}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-extrabold">
+                            ${clip.score} <span class="text-[9px] font-normal">Score</span>
+                        </div>
+                        <i class="fa-solid fa-play text-xs text-slate-500 group-hover:text-indigo-400"></i>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('clipCount').innerText = mockClips.length;
+        }
+
+        function playClip(startTime) {
+            seekVideo((startTime / (video.duration || 50)) * 100);
+            if (video.paused) togglePlay();
+        }
+
+        function runAiAnalysis() {
+            const btn = event.currentTarget;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing...';
+            setTimeout(() => {
+                mockClips = [
+                    { id: 1, title: "Viral Breakthrough Moment", start: 1, end: 12, score: 98, tag: "Top Hook" },
+                    { id: 2, title: "Key Insight Breakdown", start: 15, end: 28, score: 94, tag: "High Retention" },
+                    { id: 3, title: "Audience Reaction Peak", start: 30, end: 45, score: 90, tag: "Viral" },
+                    { id: 4, title: "Call to Action", start: 46, end: 58, score: 87, tag: "Conversion" }
+                ];
+                renderClipsList();
+                btn.innerHTML = '<i class="fa-solid fa-brain"></i> Re-Analyze';
+            }, 1000);
+        }
+
+        function switchTab(tab) {
+            if (tab === 'captions') {
+                document.getElementById('tab-captions').className = "flex-1 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white transition";
+                document.getElementById('tab-reframe').className = "flex-1 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition";
+                document.getElementById('panel-captions').classList.remove('hidden');
+                document.getElementById('panel-reframe').classList.add('hidden');
+            } else {
+                document.getElementById('tab-reframe').className = "flex-1 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white transition";
+                document.getElementById('tab-captions').className = "flex-1 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition";
+                document.getElementById('panel-reframe').classList.remove('hidden');
+                document.getElementById('panel-captions').classList.add('hidden');
+            }
+        }
+
+        function updateCaptionStyle() {
+            const style = document.getElementById('captionStyleSelect').value;
+            const badge = document.getElementById('captionText');
+            if (style === 'hormozi') {
+                badge.className = "px-3 py-1.5 rounded-lg bg-black/90 text-yellow-300 font-black text-lg sm:text-2xl tracking-wide uppercase drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] border border-yellow-400/30";
+            } else if (style === 'neon') {
+                badge.className = "px-3 py-1.5 rounded-lg bg-slate-950/90 text-cyan-400 font-black text-lg sm:text-2xl tracking-wide uppercase drop-shadow-[0_0_12px_rgba(6,182,212,0.8)] border border-cyan-500/40";
+            } else if (style === 'karaoke') {
+                badge.className = "px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black text-lg sm:text-2xl tracking-wide uppercase shadow-xl border border-white/20";
+            } else {
+                badge.className = "px-3 py-1.5 rounded-lg bg-white/90 text-slate-950 font-bold text-lg sm:text-2xl tracking-wide drop-shadow-md";
+            }
+        }
+
+        function updateCaptionsLive(time) {
+            const textEl = document.getElementById('captionText');
+            if (time < 3) textEl.innerText = "Welcome to SnapCut AI!";
+            else if (time < 7) textEl.innerText = "Creating Viral Clips In Seconds";
+            else if (time < 12) textEl.innerText = "Smart Framing & Auto Captions";
+            else textEl.innerText = "Export Watermark-Free Now!";
+        }
+
+        function updateHookBanner() {
+            const val = document.getElementById('hookTextInput').value;
+            const banner = document.getElementById('hookOverlay');
+            const text = document.getElementById('hookBannerText');
+            if (val.trim() !== '') {
+                banner.classList.remove('hidden');
+                text.innerText = val;
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
+        function generateAiHook() {
+            const hooks = [
+                "🔥 You Won't Believe What Happens Next!",
+                "⚠️ This Changed Everything...",
+                "🚨 Secret AI Strategy Revealed!",
+                "💡 Stop Doing This Immediately!"
+            ];
+            const randomHook = hooks[Math.floor(Math.random() * hooks.length)];
+            document.getElementById('hookTextInput').value = randomHook;
+            updateHookBanner();
+        }
+
+        function autoTranscribeAudio() {
+            alert("AI Audio Transcription completed successfully! Formatted into kinetic caption timestamps.");
+        }
+
+        function applyAiEnhance() {
+            alert("Studio Crisp & Vibrance enhancements applied successfully!");
+        }
+
+        function openLinkModal() { document.getElementById('linkModal').classList.remove('hidden'); }
+        function closeLinkModal() { document.getElementById('linkModal').classList.add('hidden'); }
+        function importSocialLink() {
+            const url = document.getElementById('socialUrlInput').value;
+            if (!url) return;
+            closeLinkModal();
+            loadDemoVideo();
+            alert("Social video successfully imported and ready for clipping!");
+        }
+
+        function openExportModal() { document.getElementById('exportModal').classList.remove('hidden'); }
+        function closeExportModal() { 
+            document.getElementById('exportModal').classList.add('hidden'); 
+            document.getElementById('exportProgressContainer').classList.remove('flex');
+            document.getElementById('exportProgressContainer').classList.add('hidden');
+            document.getElementById('startExportBtn').classList.remove('hidden');
+        }
+
+        function startExportProcess() {
+            document.getElementById('startExportBtn').classList.add('hidden');
+            const progContainer = document.getElementById('exportProgressContainer');
+            progContainer.classList.remove('hidden');
+            progContainer.classList.add('flex');
+
+            let pct = 0;
+            const bar = document.getElementById('exportProgressBar');
+            const txt = document.getElementById('exportPct');
+            const statusTxt = document.getElementById('exportStatusText');
+
+            const interval = setInterval(() => {
+                pct += 5;
+                bar.style.width = pct + '%';
+                txt.innerText = pct + '%';
+
+                if (pct === 40) statusTxt.innerText = "Rendering kinetic captions & hook banner...";
+                if (pct === 80) statusTxt.innerText = "Encoding high-bitrate MP4...";
+
+                if (pct >= 100) {
+                    clearInterval(interval);
+                    statusTxt.innerText = "Export Complete! Downloading file...";
+                    setTimeout(() => {
+                        closeExportModal();
+                        const a = document.createElement('a');
+                        a.href = video.src;
+                        a.download = 'SnapCut-AI-Viral-Clip.mp4';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    }, 800);
+                }
+            }, 120);
+        }
+
+        function installAppPrompt() {
+            alert("To install SnapCut AI on your device:\n\n📱 iPhone / iPad: Tap the 'Share' button in Safari and select 'Add to Home Screen'.\n🤖 Android / PC: Tap your browser menu and select 'Install App' or 'Add to Home Screen'.");
+        }
+    </script>
+</body>
+</html>
